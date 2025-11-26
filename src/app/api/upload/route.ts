@@ -22,7 +22,22 @@ export async function POST(req: NextRequest) {
     sessionId = uuidv4();
 
     const formData = await req.formData();
-    // FINISH THIS PART!!
+    const canidateFormId = formData.get("canidateId");
+    const resumeFile = formData.get("resume");
+    const filepond = formData.get("filepond");
+    const canidateFile = File;
+
+    let fileName = "";
+    let fullText = "";
+
+    const canidateId = (canidateFormId != null) ? canidateFormId : uuidv4();
+
+    // Ensure file uploaded
+    if (canidateFile == null || canidateFile == undefined || (canidateFile instanceof File == null)) {
+      return NextResponse.json(
+        {error: "Not a valid upload"}, {status: 400}
+      );
+    }
   }
 
 
@@ -70,6 +85,3 @@ export async function POST(req: NextRequest) {
       console.error("Supabase insert error:", error);
       return NextResponse.json({ error: "DB insert failed" }, { status: 500 });
     }
-
-  }
-}
