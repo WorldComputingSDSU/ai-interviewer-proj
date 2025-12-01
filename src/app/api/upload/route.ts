@@ -17,32 +17,31 @@ export async function POST(req: NextRequest) {
 
   if (!sessionId) {
     sessionId = uuidv4();
+  }
 
-    const formData = await req.formData();
-    const canidateFormId = formData.get("canidateId");
-    const resumeFile = formData.get("resume");
-    const filepond = formData.get("filepond");
-    const canidateFile = File;
+  const formData = await req.formData();
+  const candidateFormId = formData.get("candidateId");
+  const resumeFile = formData.get("resume");
+  const filepond = formData.get("filepond");
+  const candidateFile = File;
 
-    let fileName = "";
-    let fullText = "";
+  let fileName = "";
+  let fullText = "";
 
-    const canidateId = (canidateFormId != null) ? canidateFormId : uuidv4();
+  const candidateId = (candidateFormId != null) ? candidateFormId : uuidv4();
 
-    // Ensure file uploaded
-    if (canidateFile == null || canidateFile == undefined || (canidateFile instanceof File == null)) {
-      return NextResponse.json(
-        {error: "Not a valid upload"}, {status: 400}
-      );
-    }
+  if (candidateFile == null || candidateFile == undefined || (candidateFile instanceof File == null)) {
+    return NextResponse.json(
+      {error: "Not a valid upload"}, {status: 400}
+    );
   }
 
 
 
   //parsing pdf to write to a json file // not sure if this works
-  const fileName = `${uuidv4()}.pdf`;
+  fileName = `${uuidv4()}.pdf`;
   const tempFilePath = `/tmp/${fileName}`;
-  const fileBuffer = Buffer.from(await canidateFile.arrayBuffer());
+  const fileBuffer = Buffer.from(await candidateFile.arrayBuffer());
   await fs.writeFile(tempFilePath, fileBuffer);
 
 
