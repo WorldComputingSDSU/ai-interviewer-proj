@@ -1,12 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
-import { cookies } from 'next/headers';
-
 import fs from "fs";
 import PDFParser from "pdf2json";
 
 import { chunkText } from "@/lib/chunk";
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
 import { supabaseAdmin } from "@/lib/supabaseServer";
@@ -15,8 +13,7 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 export async function POST(req: NextRequest) {
 
   //generates a session id
-  const cookieStore = cookies();
-  let sessionId = cookieStore.get('sessionId')?.value;
+  let sessionId = req.cookies.get('sessionId')?.value;
 
   if (!sessionId) {
     sessionId = uuidv4();
@@ -45,7 +42,7 @@ export async function POST(req: NextRequest) {
   //parsing pdf to write to a json file // not sure if this works
   const fileName = `${uuidv4()}.pdf`;
   const tempFilePath = `/tmp/${fileName}`;
-  const fileBuffer = Buffer.from(await uploadedFile.arrayBuffer());
+  const fileBuffer = Buffer.from(await canidateFile.arrayBuffer());
   await fs.writeFile(tempFilePath, fileBuffer);
 
 
@@ -85,3 +82,5 @@ export async function POST(req: NextRequest) {
       console.error("Supabase insert error:", error);
       return NextResponse.json({ error: "DB insert failed" }, { status: 500 });
     }
+  }
+}
