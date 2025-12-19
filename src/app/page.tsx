@@ -65,6 +65,11 @@ export default function Page() {
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
 
+      {/* WCO Logo */}
+      <div className="absolute top-8 right-8">
+        <img src="/WCO_logo.webp" alt="WCO Logo" className="h-15 w-auto"></img>
+      </div>
+
       <header className="text-4xl font-road">
         Welcome to AI Interviewer
       </header>
@@ -100,12 +105,23 @@ export default function Page() {
               </div>
             </form>
 
+            {/* Upload Resume button */}
+            <div className="flex items-center gap-2">
+              {!interviewStarted && <span className="w-6 font-bold text-left">2.</span>}
+                <button
+                  type="button"
+                  className="font-road font-bold border border-gray-50 px-4 py-2 rounded cursor-pointer text-center hover:bg-gray-700 w-[250px]"
+                >
+                  Upload Resume
+                </button>
+            </div>
+
             {/* Paste Job Description */}
             {interviewStarted && (
               <span className="font-road font-bold text-gray-500 ml-1 mt-0.5 text-sm">Job Description</span>
             )}
             <div className="flex items-center gap-2">
-              {!interviewStarted && <span className="w-6 font-bold text-left">2.</span>}
+              {!interviewStarted && <span className="w-6 font-bold text-left">3.</span>}
               <input
                 type="text"
                 placeholder="Paste Job Description Here"
@@ -120,7 +136,7 @@ export default function Page() {
             {!interviewStarted && (
               <>
                 <div className="flex items-center gap-2">
-                  <span className="w-6 font-bold text-left">3.</span>
+                  <span className="w-6 font-bold text-left">4.</span>
                   <button
                     className={submitButtonClass}
                     onClick={handleSubmitJobDescription}
@@ -130,7 +146,7 @@ export default function Page() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="w-6 font-bold text-left">4.</span>
+                  <span className="w-6 font-bold text-left">5.</span>
                   <button
                     className="font-road font-bold border border-gray-50 px-4 py-2 rounded hover:bg-gray-700 cursor-pointer w-[250px]"
                     onClick={startInterview}
