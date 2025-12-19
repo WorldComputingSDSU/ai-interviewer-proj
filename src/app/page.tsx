@@ -37,6 +37,33 @@ export default function Page() {
     }
   }
 
+  async function uploadResume(){
+   if (!selectedFile){
+    setFileValid(false);
+    return;
+   } 
+   try{
+    const formData = new FormData();
+    formData.append("resume", selectedFile);
+
+    const res = await fetch("api/upload",{
+      method: "POST",
+      body: formData,
+    });
+   
+   if (!res.ok){
+    throw new Error("Upload failed");
+   }
+
+   const data = await res.json();
+   console.log("Upload success:",data);
+
+   setFileValid(true);
+  } catch(err){
+    console.error(err);
+    setFileValid(false);
+  }
+  }
   const fileLabelClass =
     interviewStarted
       ? "font-road font-bold border border-gray-50 px-4 py-2 rounded text-gray-500 cursor-default text-center w-[250px]"
@@ -110,6 +137,7 @@ export default function Page() {
               {!interviewStarted && <span className="w-6 font-bold text-left">2.</span>}
                 <button
                   type="button"
+                  onClick = {uploadResume}
                   className="font-road font-bold border border-gray-50 px-4 py-2 rounded cursor-pointer text-center hover:bg-gray-700 w-[250px]"
                 >
                   Upload Resume
