@@ -1,102 +1,165 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState } from "react";
+
+export default function Page() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [interviewStarted, setInterviewStarted] = useState(false);
+  const [jobDescription, setJobDescription] = useState("");
+  const [jobValid, setJobValid] = useState<boolean | null>(null);
+  const [fileValid, setFileValid] = useState<boolean | null>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
+      setFileValid(true);
+    } else {
+      setSelectedFile(null);
+      setFileValid(false);
+    }
+  }
+
+  function handleSubmitJobDescription() {
+    if (jobDescription.trim() !== "") {
+      setJobValid(true);
+    } else {
+      setJobValid(false);
+    }
+  }
+
+  function startInterview() {
+    if (!selectedFile) setFileValid(false);
+    if (!jobDescription.trim()) setJobValid(false);
+
+    // Only allow interview if file is selected AND job description has been submitted successfully
+    if (selectedFile && jobValid) {
+      setInterviewStarted(true);
+    }
+  }
+
+  const fileLabelClass =
+    interviewStarted
+      ? "font-road font-bold border border-gray-50 px-4 py-2 rounded text-gray-500 cursor-default text-center w-[250px]"
+      : fileValid === null
+      ? "font-road font-bold border border-gray-50 px-4 py-2 rounded cursor-pointer text-center hover:bg-gray-700 w-[250px]"
+      : fileValid
+      ? "font-road font-bold border border-green-500 px-4 py-2 rounded text-green-500 cursor-pointer text-center w-[250px]"
+      : "font-road font-bold border border-red-500 px-4 py-2 rounded text-red-500 cursor-pointer text-center w-[250px]";
+
+  const jobInputClass =
+    interviewStarted
+      ? "border border-gray-50 px-4 py-10 w-[250px] rounded text-gray-500 cursor-default"
+      : jobValid === null
+      ? "border border-gray-50 px-4 py-10 w-[250px] rounded focus:outline-none focus:ring-2 focus:ring-white"
+      : jobValid
+      ? "border border-green-500 px-4 py-10 w-[250px] rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+      : "border border-red-500 px-4 py-10 w-[250px] rounded focus:outline-none focus:ring-2 focus:ring-red-500";
+
+  const submitButtonClass =
+    jobValid === null
+      ? "font-road font-bold border border-gray-50 px-4 py-2 rounded hover:bg-gray-700 cursor-pointer w-[250px]"
+      : jobValid
+      ? "font-road font-bold border border-green-500 px-4 py-2 rounded text-green-500 cursor-pointer w-[250px]"
+      : "font-road font-bold border border-red-500 px-4 py-2 rounded text-red-500 cursor-pointer w-[250px]";
+
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <header className="text-4xl font-road">
+        Welcome to AI Interviewer
+      </header>
+
+      <main className="flex flex-col gap-4 row-start-2 items-center sm:items-start">
+        <div className="flex gap-3">
+          <div className="flex flex-col gap-2">
+
+            {/* Choose File */}
+            <form className="flex flex-col gap-1">
+              {interviewStarted && (
+                <span className="font-road font-bold text-gray-500 ml-1 mt-0.5 text-sm">Selected File</span>
+              )}
+              <div className="flex items-center gap-2">
+                {!interviewStarted && <span className="w-6 font-bold text-left">1.</span>}
+                <label className={fileLabelClass}>
+                  {selectedFile
+                    ? selectedFile.name
+                    : interviewStarted
+                    ? "No file selected"
+                    : "Choose File"}
+                  {!interviewStarted && (
+                    <input
+                      type="file"
+                      className="hidden"
+                      name="resume"
+                      accept="application/pdf"
+                      onChange={handleFileChange}
+                      required
+                    />
+                  )}
+                </label>
+              </div>
+            </form>
+
+            {/* Paste Job Description */}
+            {interviewStarted && (
+              <span className="font-road font-bold text-gray-500 ml-1 mt-0.5 text-sm">Job Description</span>
+            )}
+            <div className="flex items-center gap-2">
+              {!interviewStarted && <span className="w-6 font-bold text-left">2.</span>}
+              <input
+                type="text"
+                placeholder="Paste Job Description Here"
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                className={jobInputClass}
+                readOnly={interviewStarted}
+              />
+            </div>
+
+            {/* Submit Job Description & Start Interview */}
+            {!interviewStarted && (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="w-6 font-bold text-left">3.</span>
+                  <button
+                    className={submitButtonClass}
+                    onClick={handleSubmitJobDescription}
+                  >
+                    Submit Job Description
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="w-6 font-bold text-left">4.</span>
+                  <button
+                    className="font-road font-bold border border-gray-50 px-4 py-2 rounded hover:bg-gray-700 cursor-pointer w-[250px]"
+                    onClick={startInterview}
+                  >
+                    Start Interview
+                  </button>
+                </div>
+              </>
+            )}
+
+          </div>
+
+          {/* "follow these steps" -> "Interview Started" */}
+          <div className="text-green-500 font-road font-bold border border-white w-250 h-130 p-4 mx-auto relative">
+            <div
+              className={`inline-flex font-road font-bold w-fit h-fit p-2 whitespace-nowrap rounded border ${
+                interviewStarted ? "text-yellow-500 border-yellow-500" : "text-green-500 border-green-500"
+              }`}
+            >
+              {interviewStarted
+                ? "Interview Started"
+                : "⬅ To get started, follow these simple steps!"}
+            </div>
+          </div>
+
         </div>
       </main>
+
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
       </footer>
     </div>
   );
