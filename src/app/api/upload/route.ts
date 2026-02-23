@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   if (!candidateFile || !(candidateFile instanceof File)) {
     return NextResponse.json(
       { error: "No valid file uploaded." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   const pdfParser = new (PDFParser as any)(null, 1);
   await new Promise<void>((resolve, reject) => {
     pdfParser.on("pdfParser_dataError", (errData: any) =>
-      reject(errData?.parserError ?? "PDF parse error")
+      reject(errData?.parserError ?? "PDF parse error"),
     );
     pdfParser.on("pdfParser_dataReady", () => {
       parsedText = (pdfParser as any).getRawTextContent();
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     console.error("Embedding/DB error:", e);
     return NextResponse.json(
       { error: e?.message ?? String(e) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
