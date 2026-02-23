@@ -1,73 +1,63 @@
-import { v4 as uuidv4 } from 'uuid';
-import { writeFile } from "fs/promises";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { promises as fs } from "fs";
+import { v4 as uuidv4 } from "uuid";
 import PDFParser from "pdf2json";
-
-import { chunkText } from "@/lib/chunk";
-
-import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-
 import { supabaseAdmin } from "@/lib/supabaseServer";
+import { chunkText } from "@/lib/chunk";
+import { randomUUID } from "crypto";
 
-//handles file uploads
+export const runtime = "nodejs";
+
 export async function POST(req: NextRequest) {
-
-  //generates a session id
-  let sessionId = req.cookies.get('sessionId')?.value;
-  let newSession = false;
-
-  if (!sessionId) {
-    sessionId = uuidv4();
-    newSession = true;
-  }
+  let sessionId = req.cookies.get("aii_session")?.value ?? undefined;
+  const isNewSession = !sessionId;
+  if (!sessionId) sessionId = randomUUID();
 
   const formData = await req.formData();
-  const candidateFormId = (formData.get("candidateId") as string) || "";
+  const candidateIdFromForm = (formData.get("candidateId") as string) || "";
+
+  // support both resume + filepond
   const resumeFile = formData.get("resume");
-  const filepond = formData.get("filepond");
-  const candidateFile = (resumeFile instanceof File ? resumeFile : filepond instanceof File ? filepond: null);
+  const filepondAll = formData.getAll("filepond");
+  const candidateFile = (resumeFile ??
+    (filepondAll && filepondAll[0])) as File | null;
 
-  let fileName = "";
-  let fullText = "";
+  const candidateId = candidateIdFromForm || uuidv4();
 
-  const candidateId = (candidateFormId && typeof candidateFormId == 'string') ? candidateFormId : uuidv4();
-
-  if (candidateFile == null || candidateFile == undefined || (candidateFile instanceof File == null)) {
+  if (!candidateFile || !(candidateFile instanceof File)) {
     return NextResponse.json(
-      {error: "Not a valid upload"}, {status: 400}
+      { error: "No valid file uploaded." },
+      { status: 400 }
     );
   }
 
-
-
-  //parsing pdf to write to a json file // not sure if this works
-  fileName = `${uuidv4()}.pdf`;
-  const tempFilePath = `/tmp/${fileName}`;
+  // Save PDF to /tmp and parse
+  const fileName = uuidv4();
+  const tempFilePath = `/tmp/${fileName}.pdf`;
   const fileBuffer = Buffer.from(await candidateFile.arrayBuffer());
-  await writeFile(tempFilePath, fileBuffer);
+  await fs.writeFile(tempFilePath, fileBuffer);
 
-
-  const pdfParser = new PDFParser();
-  const parsedText = await new Promise((resolve, reject) => {
-    pdfParser.on("pdfParser_dataError", (errData) => {
-      reject(errData?.parserError ?? "PDF parse error");
-    });
-
+  let parsedText = "";
+  const pdfParser = new (PDFParser as any)(null, 1);
+  await new Promise<void>((resolve, reject) => {
+    pdfParser.on("pdfParser_dataError", (errData: any) =>
+      reject(errData?.parserError ?? "PDF parse error")
+    );
     pdfParser.on("pdfParser_dataReady", () => {
-      const text = (pdfParser as any).getRawTextContent();
-      resolve(text);
+      parsedText = (pdfParser as any).getRawTextContent();
+      resolve();
     });
-
     pdfParser.loadPDF(tempFilePath);
   });
 
-  //writing/embedding the chunks into supabase using openai
   try {
     const chunks = chunkText(parsedText, 1200);
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const emb = await openai.embeddings.create({
       model: "text-embedding-3-small",
-      input: chunks
+      input: chunks,
     });
 
     const rows = chunks.map((chunk, i) => ({
@@ -75,35 +65,39 @@ export async function POST(req: NextRequest) {
       embedding: emb.data[i].embedding,
       candidate_id: candidateId,
       session_id: sessionId,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     }));
 
-    const supabs = supabaseAdmin();
-    const { error } = await supabs.from("documents").insert(rows);
+    const supa = supabaseAdmin();
+    const { error } = await supa.from("documents").insert(rows);
     if (error) {
       console.error("Supabase insert error:", error);
       return NextResponse.json({ error: "DB insert failed" }, { status: 500 });
     }
-  } catch(e) {
-    console.error("Embedding error:", e);
-    return NextResponse.json({ error: "Embedding error" }, { status: 500 });
+  } catch (e: any) {
+    console.error("Embedding/DB error:", e);
+    return NextResponse.json(
+      { error: e?.message ?? String(e) },
+      { status: 500 }
+    );
   }
 
-    const response = NextResponse.json({
-      parsedText,
-      fileName,
-      candidateId,
-      sessionId,
-    });
+  const res = NextResponse.json({
+    parsedText,
+    fileName,
+    candidateId,
+    sessionId,
+  });
 
-    if (newSession) {
-      response.cookies.set("sessionId", sessionId, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 30,
-      })
-    }
-  return response;
+  if (isNewSession) {
+    res.cookies.set("aii_session", sessionId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 30,
+    });
+  }
+
+  return res;
 }
