@@ -9,6 +9,12 @@ export default function Page() {
   const [jobValid, setJobValid] = useState<boolean | null>(null);
   const [fileValid, setFileValid] = useState<boolean | null>(null);
 
+  const [uploadResponse, setUploadResponse] = useState<any | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0]);
@@ -19,14 +25,47 @@ export default function Page() {
     }
   }
 
-  function handleSubmitJobDescription() {
-    if (jobDescription.trim() !== "") {
-      setJobValid(true);
-    } else {
-      setJobValid(false);
-    }
+async function handleSubmitJobDescription(e?: React.MouseEvent<HTMLButtonElement>) {
+  e?.preventDefault();
+
+  if (jobDescription.trim() === "") {
+    setJobValid(false);
+    return;
+  }
+  setJobValid(true);
+
+  if (!selectedFile) {
+    setFileValid(false);
+    return;
   }
 
+  setUploadLoading(true);
+  setUploadError(null);
+
+  try {
+    const formData = new FormData();
+    formData.append("resume", selectedFile);
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Upload failed");
+    }
+
+    const data = await res.json();
+    setUploadResponse(data);
+    setFileValid(true);
+  } catch (err: any) {
+    setUploadError(err?.message ?? "Upload failed");
+    setFileValid(false);
+  } finally {
+    setUploadLoading(false);
+  }
+}
   function startInterview() {
     if (!selectedFile) setFileValid(false);
     if (!jobDescription.trim()) setJobValid(false);
@@ -123,9 +162,9 @@ export default function Page() {
                   <span className="w-6 font-bold text-left">3.</span>
                   <button
                     className={submitButtonClass}
-                    onClick={handleSubmitJobDescription}
+                    onClick={(e) => handleSubmitJobDescription(e)}
                   >
-                    Submit Job Description
+                    {uploadLoading ? "Submitting..." : "Submit Job Description"}
                   </button>
                 </div>
 
@@ -155,7 +194,23 @@ export default function Page() {
                 : "⬅ To get started, follow these simple steps!"}
             </div>
           </div>
+          {interviewStarted && (
+            <div className="mt-6 w-full max-w-[900px] border border-white p-4 rounded">
+              <div className="font-road font-bold mb-2">Resume JSON from /api/upload</div>
 
+              {uploadError && <div className="text-red-500">Error: {uploadError}</div>}
+
+              {!uploadResponse ? (
+              <div className="text-gray-400">
+                No upload JSON yet. Please submit job description first.
+              </div>
+            ) : (
+              <pre className="text-xs whitespace-pre-wrap break-words max-h-[400px] overflow-auto">
+                {JSON.stringify(uploadResponse, null, 2)}
+              </pre>
+             )}
+          </div>
+        )}
         </div>
       </main>
 
