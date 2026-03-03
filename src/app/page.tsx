@@ -1,6 +1,7 @@
-"use client";
+ "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 
 export default function Page() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -102,10 +103,22 @@ async function handleSubmitJobDescription(e?: React.MouseEvent<HTMLButtonElement
       : "font-road font-bold border border-red-500 px-4 py-2 rounded text-red-500 cursor-pointer w-[250px]";
 
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
+    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 relative">
 
-      <header className="text-4xl font-road">
-        Welcome to AI Interviewer
+      <header className="text-4xl font-road w-full flex items-center justify-center">
+        <span className="relative inline-flex items-center text-center">
+          <span>Welcome to AI Interviewer</span>
+          <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 w-[240px] h-[80px] inline-block">
+            <Image
+              src="/WCO_logo.webp"
+              alt="WCO logo"
+              fill
+              draggable={false}
+              className="object-contain select-none pointer-events-none"
+              priority
+            />
+          </span>
+        </span>
       </header>
 
       <main className="flex flex-col gap-4 row-start-2 items-center sm:items-start">
@@ -182,35 +195,72 @@ async function handleSubmitJobDescription(e?: React.MouseEvent<HTMLButtonElement
 
           </div>
 
-          {/* "follow these steps" -> "Interview Started" */}
-          <div className="text-green-500 font-road font-bold border border-white w-250 h-130 p-4 mx-auto relative">
-            <div
-              className={`inline-flex font-road font-bold w-fit h-fit p-2 whitespace-nowrap rounded border ${
-                interviewStarted ? "text-yellow-500 border-yellow-500" : "text-green-500 border-green-500"
-              }`}
-            >
-              {interviewStarted
-                ? "Interview Started"
-                : "⬅ To get started, follow these simple steps!"}
-            </div>
-          </div>
-          {interviewStarted && (
-            <div className="mt-6 w-full max-w-[900px] border border-white p-4 rounded">
-              <div className="font-road font-bold mb-2">Resume JSON from /api/upload</div>
-
-              {uploadError && <div className="text-red-500">Error: {uploadError}</div>}
-
-              {!uploadResponse ? (
-              <div className="text-gray-400">
-                No upload JSON yet. Please submit job description first.
+          <div
+            className={`text-green-500 font-road font-bold border border-white w-250 h-130 p-4 mx-auto relative ${
+              interviewStarted ? "flex" : ""
+            }`}
+          >
+            {!interviewStarted ? (
+              <div
+                className={`inline-flex font-road font-bold w-fit h-fit p-2 whitespace-nowrap rounded border ${
+                  interviewStarted ? "text-yellow-500 border-yellow-500" : "text-green-500 border-green-500"
+                }`}
+              >
+                ⬅ To get started, follow these simple steps!
               </div>
             ) : (
-              <pre className="text-xs whitespace-pre-wrap break-words max-h-[400px] overflow-auto">
-                {JSON.stringify(uploadResponse, null, 2)}
-              </pre>
-             )}
+              <>
+                <div className="flex-1 flex flex-col items-start pr-2">
+                  <div className="inline-flex font-road font-bold w-fit h-fit p-2 whitespace-nowrap rounded border text-yellow-500 border-yellow-500">
+                    Interview Started
+                  </div>
+                </div>
+                <div className="w-px bg-white/40 mx-1" />
+
+                <div className="flex-1 flex flex-col pl-2 overflow-hidden gap-2">
+                  {/* Parsed Resume section */}
+                  <div className="flex-1 flex flex-col min-h-0">
+                    <div className="font-road font-bold text-xs text-gray-200 mb-1 text-center">
+                      Parsed Resume
+                    </div>
+                    <div className="flex-1 text-xs text-gray-100 bg-black/30 rounded p-2 overflow-auto whitespace-pre-wrap break-words">
+                      {uploadError && (
+                        <div className="text-red-500 mb-1">Error: {uploadError}</div>
+                      )}
+
+                      {!uploadResponse ? (
+                        <div className="text-gray-400">
+                          No upload JSON yet. Please submit job description first.
+                        </div>
+                      ) : (
+                        <pre className="whitespace-pre-wrap break-words">
+                          {(uploadResponse.parsedText as string | undefined)
+                            ?.replace(/\r\n/g, "\n")
+                            .trim() || JSON.stringify(uploadResponse, null, 2)}
+                        </pre>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Job Description section */}
+                  <div className="flex flex-col">
+                    <div className="font-road font-bold text-xs text-gray-200 mb-1 text-center">
+                      Job Description
+                    </div>
+                    <div className="text-xs text-gray-100 bg-black/30 rounded p-2 max-h-[120px] overflow-auto whitespace-pre-wrap break-words">
+                      {jobDescription.trim() ? (
+                        jobDescription
+                      ) : (
+                        <span className="text-gray-400">
+                          No job description entered yet.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        )}
         </div>
       </main>
 
