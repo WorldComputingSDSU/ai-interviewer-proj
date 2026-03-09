@@ -10,6 +10,40 @@ import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 
+function decodePdfTextToken(token: string): string {
+  try {
+    return decodeURIComponent(token);
+  } catch {
+    return token;
+  }
+}
+
+function extractTextFromPdfData(pdfData: any): string {
+  const pages = pdfData?.Pages;
+  if (!Array.isArray(pages)) return "";
+
+  const text = pages
+    .map((page: any) => {
+      const textItems = Array.isArray(page?.Texts) ? page.Texts : [];
+      const pageText = textItems
+        .map((textItem: any) => {
+          const runs = Array.isArray(textItem?.R) ? textItem.R : [];
+          return runs
+            .map((run: any) => decodePdfTextToken(String(run?.T ?? "")))
+            .join("");
+        })
+        .join(" ")
+        .trim();
+
+      return pageText;
+    })
+    .filter(Boolean)
+    .join("\n\n")
+    .trim();
+
+  return text;
+}
+
 export async function POST(req: NextRequest) {
   let sessionId = req.cookies.get("aii_session")?.value ?? undefined;
   const isNewSession = !sessionId;
@@ -41,19 +75,58 @@ export async function POST(req: NextRequest) {
 
   let parsedText = "";
   const pdfParser = new (PDFParser as any)(null, 1);
-  await new Promise<void>((resolve, reject) => {
-    pdfParser.on("pdfParser_dataError", (errData: any) =>
-      reject(errData?.parserError ?? "PDF parse error"),
-    );
-    pdfParser.on("pdfParser_dataReady", () => {
-      parsedText = (pdfParser as any).getRawTextContent();
-      resolve();
-    });
-    pdfParser.loadPDF(tempFilePath);
-  });
 
   try {
-    const chunks = chunkText(parsedText, 1200);
+    parsedText = await new Promise<string>((resolve, reject) => {
+      pdfParser.on("pdfParser_dataError", (errData: any) => {
+        reject(errData?.parserError ?? new Error("PDF parse error"));
+      });
+
+      pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+        try {
+          const extracted = extractTextFromPdfData(pdfData);
+          if (extracted) {
+            resolve(extracted);
+            return;
+          }
+
+          const fallback = (pdfParser as any).getRawTextContent?.();
+          resolve(typeof fallback === "string" ? fallback : "");
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      pdfParser.loadPDF(tempFilePath);
+    });
+  } catch (e: any) {
+    console.error("PDF parse error:", e);
+    return NextResponse.json(
+      { error: e?.message ?? "Failed to parse PDF" },
+      { status: 400 },
+    );
+  } finally {
+    await fs.unlink(tempFilePath).catch(() => undefined);
+  }
+
+  try {
+    if (!parsedText.trim()) {
+      return NextResponse.json(
+        { error: "Could not extract readable text from the uploaded PDF." },
+        { status: 400 },
+      );
+    }
+
+    const chunks = chunkText(parsedText, 1200).filter(
+      (chunk) => chunk.trim().length > 0,
+    );
+    if (chunks.length === 0) {
+      return NextResponse.json(
+        { error: "Could not extract readable text from the uploaded PDF." },
+        { status: 400 },
+      );
+    }
+
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const emb = await openai.embeddings.create({
       model: "text-embedding-3-small",
